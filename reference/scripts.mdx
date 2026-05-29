@@ -1,0 +1,226 @@
+---
+title: "Script Reference for DetectorPlacas"
+sidebarTitle: "Scripts"
+description: "Full reference for all four DetectorPlacas Python scripts: flags, constants, tensor names, confidence thresholds, and window titles for each detection mode."
+---
+
+DetectorPlacas ships four Python scripts: three detection scripts that each handle a different input source (static images, a video file, and a live webcam feed) and one Tkinter GUI launcher that wraps all three. This page documents every flag, constant, visualization setting, and behavioral detail drawn directly from the source code for each script.
+
+<Tabs>
+  <Tab title="Object_detection_image.py">
+    Detects license plates in all `.jpg` files found in a target directory. The script iterates over every matching file, runs the frozen-graph inference pipeline on each image in sequence, and opens an OpenCV window to display the annotated result before advancing to the next file.
+
+    **Run command**
+
+    ```bash
+    python Object_detection_image.py --ruta=/path/to/images
+    ```
+
+    **Flag**
+
+    <ParamField query="--ruta" type="string" default="">
+      Path to the directory containing `.jpg` image files. When left empty the script falls back to `os.getcwd()`, so detection runs against the current working directory.
+    </ParamField>
+
+    **Constants**
+
+    | Name | Value | Purpose |
+    |------|-------|---------|
+    | `MODEL_NAME` | `'inference_graph'` | Subdirectory containing the frozen graph |
+    | `NUM_CLASSES` | `1` | Only one class: license plate |
+    | `PATH_TO_CKPT` | `os.path.join(CWD_PATH, MODEL_NAME, 'frozen_inference_graph.pb')` | Full path to the frozen `.pb` model file |
+    | `PATH_TO_LABELS` | `os.path.join(CWD_PATH, 'labelmap.pbtxt')` | Full path to the label map |
+    | `PATH_TO_IMAGE` | `os.path.join(CWD_PATH)` | Base directory for image discovery |
+
+    **Visualization settings**
+
+    ```python
+    vis_util.visualize_boxes_and_labels_on_image_array(
+        image,
+        np.squeeze(boxes),
+        np.squeeze(classes).astype(np.int32),
+        np.squeeze(scores),
+        category_index,
+        use_normalized_coordinates=True,
+        line_thickness=8,
+        min_score_thresh=0.65)
+    ```
+
+    | Setting | Value |
+    |---------|-------|
+    | `min_score_thresh` | `0.65` — detections below 65 % confidence are suppressed |
+    | `line_thickness` | `8` px bounding-box border |
+    | `use_normalized_coordinates` | `True` — boxes are in [0, 1] range |
+
+    **Window title:** `'Detector de Placas PRUEBA-IMAGEN'`
+
+    **Behavior:** Uses `os.listdir()` to collect every `.jpg` file under `--ruta`. For each image, runs a `sess.run()` inference pass, annotates the result with `vis_util`, then calls `cv2.waitKeyEx()` — press any key to advance to the next image. `cv2.destroyAllWindows()` is called after all images have been processed.
+  </Tab>
+
+  <Tab title="Object_detection_video.py">
+    Detects license plates in a video file frame by frame. The script opens the video with `cv2.VideoCapture`, processes each frame through the same frozen-graph pipeline, and displays the annotated frame in an OpenCV window.
+
+    **Run command**
+
+    ```bash
+    python Object_detection_video.py
+    ```
+
+    This script accepts no command-line flags. All paths are defined as hardcoded constants at the top of the file.
+
+    **Constants**
+
+    | Name | Value | Purpose |
+    |------|-------|---------|
+    | `MODEL_NAME` | `'inference_graph'` | Subdirectory containing the frozen graph |
+    | `VIDEO_NAME` | `'prueba.mp4'` | Expected in the current working directory |
+    | `NUM_CLASSES` | `1` | Only one class: license plate |
+    | `PATH_TO_CKPT` | `os.path.join(CWD_PATH, MODEL_NAME, 'frozen_inference_graph.pb')` | Full path to the frozen `.pb` model file |
+    | `PATH_TO_LABELS` | `os.path.join(CWD_PATH, 'labelmap.pbtxt')` | Full path to the label map |
+    | `PATH_TO_VIDEO` | `os.path.join(CWD_PATH, VIDEO_NAME)` | Full path to `prueba.mp4` |
+
+    **Visualization settings**
+
+    ```python
+    vis_util.visualize_boxes_and_labels_on_image_array(
+        frame,
+        np.squeeze(boxes),
+        np.squeeze(classes).astype(np.int32),
+        np.squeeze(scores),
+        category_index,
+        use_normalized_coordinates=True,
+        line_thickness=5,
+        min_score_thresh=0.55)
+    ```
+
+    | Setting | Value |
+    |---------|-------|
+    | `min_score_thresh` | `0.55` — lower threshold than image mode to account for motion blur |
+    | `line_thickness` | `5` px bounding-box border |
+    | `use_normalized_coordinates` | `True` |
+
+    **Window title:** `'Detector de placas- PRUEBA VIDEO'`
+
+    **Behavior:** Opens `prueba.mp4` via `cv2.VideoCapture(PATH_TO_VIDEO)` and iterates with `while(video.isOpened())`. Each iteration reads a frame with `video.read()`, converts BGR→RGB, runs inference, annotates, and calls `cv2.waitKeyEx()`. When the video ends, the loop exits, `video.release()` frees the capture handle, and `cv2.destroyAllWindows()` closes all windows.
+  </Tab>
+
+  <Tab title="Object_detection_webcam.py">
+    Detects license plates in real time from the system webcam. The script captures frames in a continuous loop, running inference on each frame and overlaying detection results live.
+
+    **Run command**
+
+    ```bash
+    python Object_detection_webcam.py
+    ```
+
+    No command-line flags. All configuration is defined as constants.
+
+    **Constants**
+
+    | Name | Value | Purpose |
+    |------|-------|---------|
+    | `MODEL_NAME` | `'inference_graph'` | Subdirectory containing the frozen graph |
+    | `NUM_CLASSES` | `1` | Only one class: license plate |
+    | `PATH_TO_CKPT` | `os.path.join(CWD_PATH, MODEL_NAME, 'frozen_inference_graph.pb')` | Full path to the frozen `.pb` model file |
+    | `PATH_TO_LABELS` | `os.path.join(CWD_PATH, 'labelmap.pbtxt')` | Full path to the label map |
+
+    **Webcam settings**
+
+    ```python
+    video = cv2.VideoCapture(0)   # index 0 = default system webcam
+    ret = video.set(3, 1280)      # width  → 1280 px
+    ret = video.set(4, 720)       # height →  720 px
+    ```
+
+    | Property | Value |
+    |----------|-------|
+    | Camera index | `0` (default system webcam) |
+    | Capture width | `1280` px |
+    | Capture height | `720` px |
+
+    **Visualization settings**
+
+    ```python
+    vis_util.visualize_boxes_and_labels_on_image_array(
+        frame,
+        np.squeeze(boxes),
+        np.squeeze(classes).astype(np.int32),
+        np.squeeze(scores),
+        category_index,
+        use_normalized_coordinates=True,
+        line_thickness=8,
+        min_score_thresh=0.50)
+    ```
+
+    | Setting | Value |
+    |---------|-------|
+    | `min_score_thresh` | `0.50` — widest threshold across all three scripts |
+    | `line_thickness` | `8` px bounding-box border |
+    | `use_normalized_coordinates` | `True` |
+
+    **Window title:** `'Detector de placas PRUEBA-WEBCAM'`
+
+    **Behavior:** Runs in an infinite `while(True)` loop. Each iteration captures a frame, converts BGR→RGB, runs a `sess.run()` inference pass, annotates the frame, and calls `cv2.waitKeyEx()`. Press any key to step through frames manually. To stop the script, press Ctrl+C in the terminal or close the OpenCV window.
+  </Tab>
+
+  <Tab title="interfaz.py">
+    A Tkinter GUI launcher that wraps all three detection scripts. Running `interfaz.py` opens a small desktop window with radio buttons to select the detection mode, an optional path entry for image mode, and a single button to launch the selected script via `os.system()`.
+
+    **Run command**
+
+    ```bash
+    python interfaz.py
+    ```
+
+    **Window title:** `"Proyecto"`
+
+    **UI elements**
+
+    | Element | Details |
+    |---------|---------|
+    | Header label | Text: `"Detección de Placas"`, font=`courier`, bg=`azure` |
+    | `selected` variable | `IntVar()` — holds the active radio selection |
+    | Radio button — IMAGEN | `value=1` |
+    | Radio button — VIDEO | `value=2` |
+    | Radio button — CAMARA | `value=3` |
+    | RUTA entry | `Entry` widget; path supplied here is forwarded to `--ruta` in image mode |
+    | PRUEBA button | Calls `clicked()` on press |
+
+    **`clicked()` dispatch function**
+
+    ```python
+    def clicked():
+       path = str("python Object_detection_image.py --ruta={}".format(entry2.get()))
+
+       if (selected.get()==1):
+          print(path)
+          os.system(path)
+       if (selected.get()==2):
+          os.system('python Object_detection_video.py')
+       if (selected.get()==3):
+          os.system('python Object_detection_webcam.py')
+    ```
+
+    When `selected == 1`, the value from the RUTA entry is interpolated into the `--ruta` flag and the image detection script is launched. Selections `2` and `3` invoke the video and webcam scripts respectively, ignoring the RUTA entry.
+  </Tab>
+</Tabs>
+
+## Shared TensorFlow tensors
+
+All three detection scripts retrieve the same five tensors from the loaded `detection_graph` using `get_tensor_by_name()`. These names are fixed by the TF Object Detection API export format.
+
+| Tensor name | Role | Shape / notes |
+|-------------|------|---------------|
+| `image_tensor:0` | **Input** — the image batch fed to the model | `[batch, H, W, 3]` — RGB uint8 values |
+| `detection_boxes:0` | **Output** — predicted bounding boxes | `[batch, num_detections, 4]` — normalized `[ymin, xmin, ymax, xmax]` in range `[0, 1]` |
+| `detection_scores:0` | **Output** — confidence score per detection | `[batch, num_detections]` — float in `[0, 1]` |
+| `detection_classes:0` | **Output** — class index per detection | `[batch, num_detections]` — `1` = license plate; cast to `int32` with `.astype(np.int32)` |
+| `num_detections:0` | **Output** — count of valid detections returned | `[batch]` — integer scalar per image in the batch |
+
+```python
+image_tensor      = detection_graph.get_tensor_by_name('image_tensor:0')
+detection_boxes   = detection_graph.get_tensor_by_name('detection_boxes:0')
+detection_scores  = detection_graph.get_tensor_by_name('detection_scores:0')
+detection_classes = detection_graph.get_tensor_by_name('detection_classes:0')
+num_detections    = detection_graph.get_tensor_by_name('num_detections:0')
+```

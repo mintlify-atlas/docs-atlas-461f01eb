@@ -1,0 +1,86 @@
+---
+title: "Using the DetectorPlacas Graphical Interface"
+sidebarTitle: "Graphical Interface"
+description: "Launch interfaz.py to select a detection mode and input path from a Tkinter window instead of running detection scripts directly from the command line."
+---
+
+`interfaz.py` provides a lightweight Tkinter GUI that wraps all three detection scripts — image, video, and webcam — in a single window. Instead of memorizing command-line flags or keeping multiple terminal sessions open, you can select a mode, optionally enter an image directory path, and click a button to launch detection. The window stays open between runs, so switching between modes is straightforward.
+
+## Launching the Interface
+
+Run the following command from the project root:
+
+```bash
+python interfaz.py
+```
+
+## Window Layout
+
+The Tkinter window is titled **"Proyecto"** and contains four interactive elements arranged in a compact grid.
+
+| Element | Position | Description |
+|---|---|---|
+| `lblInfo1` — "Detección de Placas" | Row 0, Column 1 (spans 2 columns) | Header label using courier font on an azure background |
+| `label2` — "RUTA" + `entry2` | Row 1, Columns 0–1 | Label and text entry for the image directory path (IMAGEN mode only) |
+| Radio buttons: IMAGEN / VIDEO / CAMARA | Row 2, Columns 0–2 | Select the detection mode (values 1, 2, 3 respectively) |
+| `btn` — "PRUEBA" | Row 1, Column 3 | Triggers detection by calling `clicked()` |
+
+## Using the Interface
+
+<Steps>
+
+<Step title="Select a detection mode">
+
+Click one of the three radio buttons in the bottom row of the window:
+
+- **IMAGEN** (value `1`) — run detection on `.jpg` files in a directory
+- **VIDEO** (value `2`) — run detection on `prueba.mp4`
+- **CAMARA** (value `3`) — run real-time detection from your webcam
+
+</Step>
+
+<Step title="Enter a path (IMAGEN mode only)">
+
+If you selected **IMAGEN**, type the full path to your images directory in the **RUTA** text field. This path is passed directly to `Object_detection_image.py` as the `--ruta` argument. If you leave the field empty, the script will scan the current working directory for `.jpg` files.
+
+This field has no effect when VIDEO or CAMARA is selected.
+
+</Step>
+
+<Step title="Click PRUEBA">
+
+Click the **PRUEBA** button. This calls `clicked()`, which reads the selected radio button value and dispatches to the appropriate script via `os.system()`:
+
+```python
+def clicked():
+   path = str("python Object_detection_image.py --ruta={}".format(entry2.get()))
+
+   if (selected.get()==1):
+      os.system(path)
+   if (selected.get()==2):
+      os.system('python Object_detection_video.py')
+   if (selected.get()==3):
+      os.system('python Object_detection_webcam.py')
+```
+
+</Step>
+
+<Step title="View results">
+
+The selected detection script launches and opens a new OpenCV window displaying annotated frames with bounding boxes drawn around detected license plates. Press any key to advance frames or images. When detection finishes or the window is closed, control returns to the Tkinter interface.
+
+</Step>
+
+</Steps>
+
+<Note>
+For **VIDEO** mode, `Object_detection_video.py` looks for a file named `prueba.mp4` in the same directory as the scripts. Rename your video file to `prueba.mp4` and place it in the project root before clicking PRUEBA, otherwise the script will fail to open the video capture.
+</Note>
+
+<Note>
+The **RUTA** entry field is only meaningful when IMAGEN is selected. When VIDEO or CAMARA is active, `clicked()` calls those scripts with no arguments and the contents of the RUTA field are completely ignored.
+</Note>
+
+<Tip>
+Because `clicked()` uses `os.system()` to launch each script, the detection window opens as a separate process while the Tkinter window remains open and responsive. This means you can close the detection window, select a different mode, and click PRUEBA again without restarting the interface.
+</Tip>

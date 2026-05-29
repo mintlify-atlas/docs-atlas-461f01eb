@@ -1,0 +1,158 @@
+---
+title: "Running License Plate Detection Modes"
+sidebarTitle: "Detection Modes"
+description: "Use DetectorPlacas to detect license plates in static images with --ruta, in video files, or in real-time from a webcam, each with its own confidence threshold."
+---
+
+DetectorPlacas provides three independent detection modes — static images, video files, and live webcam — each implemented in its own Python script. Every mode loads the same `frozen_inference_graph.pb` and `labelmap.pbtxt`, but each has a distinct confidence threshold tuned for its use case: stricter for images where precision matters most, and progressively more permissive for video and real-time webcam capture where recall is more valuable.
+
+<Tabs>
+
+<Tab title="Image">
+
+**Script:** `Object_detection_image.py`
+
+The image script accepts a `--ruta` flag pointing to a directory of `.jpg` files. When the flag is omitted or empty, the script falls back to the current working directory. It collects every file ending in `.jpg` using `os.listdir()`, then runs inference on each one in sequence. A new window opens for each image; press any key to advance to the next.
+
+| Setting | Value |
+|---|---|
+| Flag | `--ruta` (path to image directory) |
+| File filter | `.endswith('.jpg')` |
+| Confidence threshold | `min_score_thresh=0.65` |
+| Line thickness | 8 |
+| Window title | `'Detector de Placas PRUEBA-IMAGEN'` |
+| Advance | Press any key |
+
+**Usage:**
+
+```bash
+# Detect plates in a specific directory
+python Object_detection_image.py --ruta=/path/to/images
+
+# Detect plates in the current working directory
+python Object_detection_image.py
+```
+
+**Key detection code:**
+
+```python
+(boxes, scores, classes, num) = sess.run(
+    [detection_boxes, detection_scores, detection_classes, num_detections],
+    feed_dict={image_tensor: image_expanded})
+
+vis_util.visualize_boxes_and_labels_on_image_array(
+    image,
+    np.squeeze(boxes),
+    np.squeeze(classes).astype(np.int32),
+    np.squeeze(scores),
+    category_index,
+    use_normalized_coordinates=True,
+    line_thickness=8,
+    min_score_thresh=0.65)
+
+cv2.imshow('Detector de Placas PRUEBA-IMAGEN', image)
+cv2.waitKeyEx()
+```
+
+</Tab>
+
+<Tab title="Video">
+
+**Script:** `Object_detection_video.py`
+
+The video script opens a file named `prueba.mp4` from the project root (`VIDEO_NAME = 'prueba.mp4'`). It reads frames in a loop with `video.read()`, runs inference on each frame, draws bounding boxes, and displays the annotated frame. Press any key to advance to the next frame. When the video ends, resources are released and all windows are closed.
+
+| Setting | Value |
+|---|---|
+| Input file | `prueba.mp4` (hardcoded, must be in project root) |
+| Confidence threshold | `min_score_thresh=0.55` |
+| Line thickness | 5 |
+| Window title | `'Detector de placas- PRUEBA VIDEO'` |
+| Advance | Press any key |
+
+**Usage:**
+
+```bash
+# Rename your video file to prueba.mp4 and place it in the project root
+python Object_detection_video.py
+```
+
+**Frame loop code:**
+
+```python
+video = cv2.VideoCapture(PATH_TO_VIDEO)
+
+while(video.isOpened()):
+    ret, frame = video.read()
+    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    frame_expanded = np.expand_dims(frame_rgb, axis=0)
+
+    (boxes, scores, classes, num) = sess.run(
+        [detection_boxes, detection_scores, detection_classes, num_detections],
+        feed_dict={image_tensor: frame_expanded})
+
+    vis_util.visualize_boxes_and_labels_on_image_array(
+        frame,
+        np.squeeze(boxes),
+        np.squeeze(classes).astype(np.int32),
+        np.squeeze(scores),
+        category_index,
+        use_normalized_coordinates=True,
+        line_thickness=5,
+        min_score_thresh=0.55)
+
+    cv2.imshow('Detector de placas- PRUEBA VIDEO', frame)
+    cv2.waitKeyEx()
+
+video.release()
+cv2.destroyAllWindows()
+```
+
+</Tab>
+
+<Tab title="Webcam">
+
+**Script:** `Object_detection_webcam.py`
+
+The webcam script opens camera index 0 — your system's default webcam — and sets the capture resolution to 1280×720. It runs in an infinite loop: each iteration reads a frame, converts it, runs inference, draws detections, and displays the result. Press any key to advance to the next frame.
+
+| Setting | Value |
+|---|---|
+| Camera index | 0 (`cv2.VideoCapture(0)`) |
+| Resolution | 1280×720 |
+| Confidence threshold | `min_score_thresh=0.50` |
+| Line thickness | 8 |
+| Window title | `'Detector de placas PRUEBA-WEBCAM'` |
+| Advance | Press any key |
+
+**Usage:**
+
+```bash
+python Object_detection_webcam.py
+```
+
+**Webcam initialization code:**
+
+```python
+video = cv2.VideoCapture(0)
+ret = video.set(3, 1280)
+ret = video.set(4, 720)
+```
+
+</Tab>
+
+</Tabs>
+
+<Note>
+Each detection mode uses a different confidence threshold, intentionally tuned for its context:
+
+| Mode | Threshold | Rationale |
+|---|---|---|
+| Image | 0.65 | Highest precision — reduces false positives on static images |
+| Video | 0.55 | Balanced — trades some precision for better recall across frames |
+| Webcam | 0.50 | Most permissive — maximises recall for real-time detection |
+</Note>
+
+<Tip>
+All three modes convert each frame from OpenCV's native BGR color order to RGB with `cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)` before creating the input tensor. This conversion is required because the TensorFlow model expects RGB input, while `cv2.imread` and `cv2.VideoCapture` both return BGR arrays by default.
+</Tip>

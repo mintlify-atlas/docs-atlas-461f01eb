@@ -1,0 +1,123 @@
+---
+title: "Setting Up the DetectorPlacas Environment"
+sidebarTitle: "Environment Setup"
+description: "Configure Python, TensorFlow 1.15, OpenCV, NumPy, and the TensorFlow Object Detection API to run DetectorPlacas on your machine."
+---
+
+This guide walks you through every step needed to get DetectorPlacas running on your machine — from installing the correct Python packages to placing model files in the exact locations the scripts expect. Follow each step in order and your environment will be ready to detect license plates in images, video, or a live webcam feed.
+
+## System Requirements
+
+- **Python 3.6 or 3.7** — required for compatibility with TensorFlow 1.15
+- **pip** — for installing Python packages
+- **CUDA-capable GPU** (optional) — accelerates inference; CPU-only execution is supported
+
+<Steps>
+
+<Step title="Install Python packages">
+
+Install TensorFlow 1.15, OpenCV, and NumPy using pip:
+
+```bash
+pip install tensorflow==1.15
+pip install opencv-python
+pip install numpy
+```
+
+<Warning>
+TensorFlow 2.x is **not supported**. The detection scripts rely exclusively on TF 1.x APIs including `tf.app.flags`, `tf.Graph()`, `tf.Session()`, `tf.GraphDef()`, and `tf.gfile.GFile()`. These APIs were removed in TensorFlow 2.x and will cause import errors if you use a newer version.
+</Warning>
+
+</Step>
+
+<Step title="Install the TensorFlow Object Detection API">
+
+All three detection scripts import directly from `object_detection.utils`:
+
+```python
+from object_detection.utils import label_map_util
+from object_detection.utils import visualization_utils as vis_util
+```
+
+Clone the TensorFlow Models repository and install the research package:
+
+```bash
+git clone https://github.com/tensorflow/models.git
+cd models/research
+pip install .
+```
+
+Alternatively, add the research directory to your `PYTHONPATH` without installing:
+
+```bash
+export PYTHONPATH=$PYTHONPATH:/path/to/models/research
+```
+
+</Step>
+
+<Step title="Arrange project files">
+
+Every script calls `os.getcwd()` and builds all paths relative to that directory. `MODEL_NAME = 'inference_graph'` is hardcoded in all three detection scripts, so the `inference_graph/` folder must sit directly inside your project root.
+
+Your project root must be laid out as follows:
+
+```text
+project-root/        ← run all scripts from here
+├── inference_graph/
+│   ├── frozen_inference_graph.pb
+│   ├── model.ckpt.data-00000-of-00001
+│   ├── model.ckpt.index
+│   └── model.ckpt.meta
+├── saved_model/
+│   └── saved_model.pb
+├── checkpoint           ← contains: model_checkpoint_path: "model.ckpt"
+├── labelmap.pbtxt       ← 1 class: license_plate
+├── Object_detection_image.py
+├── Object_detection_video.py
+├── Object_detection_webcam.py
+└── interfaz.py
+```
+
+</Step>
+
+<Step title="Create labelmap.pbtxt">
+
+All scripts set `NUM_CLASSES = 1`. Your label map file must define exactly one class — `license_plate` — in the following format:
+
+```text
+item {
+  id: 1
+  name: 'license_plate'
+}
+```
+
+Save this file as `labelmap.pbtxt` in the project root. The path is constructed at runtime as `os.path.join(CWD_PATH, 'labelmap.pbtxt')`.
+
+</Step>
+
+<Step title="Verify the setup">
+
+Run a quick one-liner to confirm all three critical imports resolve without errors:
+
+```bash
+python -c "import tensorflow as tf; import cv2; from object_detection.utils import label_map_util; print('Setup OK')"
+```
+
+If you see `Setup OK`, all dependencies are installed and the Object Detection API is on your path.
+
+</Step>
+
+</Steps>
+
+<Tip>
+Always launch detection scripts from the project root directory. Because every path is computed with `os.getcwd()`, running a script from a different directory will cause `FileNotFoundError` when the scripts try to open `inference_graph/frozen_inference_graph.pb` or `labelmap.pbtxt`.
+</Tip>
+
+<Info>
+The `checkpoint` file included in the repository contains two lines that point TensorFlow's checkpoint reader to the correct model weights:
+
+```text
+model_checkpoint_path: "model.ckpt"
+all_model_checkpoint_paths: "model.ckpt"
+```
+</Info>

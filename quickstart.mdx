@@ -1,47 +1,153 @@
 ---
-title: "Quickstart"
-description: "Begin with a guide on the fastest path to a successful outcome"
+title: "Get Started with DetectorPlacas in 5 Steps"
+sidebarTitle: "Quickstart"
+description: "Install TensorFlow, OpenCV, and the Object Detection API, then run license plate detection on images, video, or your webcam in minutes."
 ---
 
-Describe how someone begins using your product. What is the first thing they need to do? Are there any prerequisites?
+By the end of this guide you will have a working DetectorPlacas environment and will have successfully run license plate detection on your first image — seeing bounding boxes and confidence scores drawn directly on the output. The setup takes about five minutes if you already have Python 3 installed.
 
-A quickstart should take someone from zero to using your product. They'll get a quick win and a sense of what they can accomplish.
-
-## Prerequisites
-
-Before you begin, you must have:
-
-- Requirement one (for example, Node.js 18+, a free account, an API key)
-- Requirement two (for example, a compatible device, a compatible browser, a compatible operating system)
-
-## Get started
+<Warning>
+  DetectorPlacas requires **TensorFlow 1.x**. The detection scripts rely on `tf.app.flags`, `tf.Graph()`, `tf.Session()`, and `tf.GraphDef()` — all APIs that were removed or substantially changed in TensorFlow 2.x. Running the scripts under TF 2.x will raise `AttributeError` exceptions without modification. Use `tensorflow==1.15`, the final TF 1.x release.
+</Warning>
 
 <Steps>
-  <Step title="Install">
-    Describe how to install your product or sign up.
+  <Step title="Install Python Dependencies">
+    Install the three core runtime libraries. `tensorflow==1.15` is the last release in the 1.x series and the version most compatible with the Object Detection API utilities used by DetectorPlacas.
 
     ```bash
-    npm install your-package
+    pip install tensorflow==1.15
+    pip install opencv-python
+    pip install numpy
+    ```
+
+    Verify the TensorFlow version after installation:
+
+    ```bash
+    python -c "import tensorflow as tf; print(tf.__version__)"
+    # Expected output: 1.15.x
     ```
   </Step>
-  <Step title="Configure">
-    Describe any setup or configuration needed before first use.
+
+  <Step title="Set Up the TensorFlow Object Detection API">
+    Each script imports `label_map_util` and `visualization_utils` from `object_detection.utils`. These modules are part of the TensorFlow Models research repository and are not distributed via PyPI by default.
+
+    Clone the repository and install the research package:
 
     ```bash
-    your-cli init
+    git clone https://github.com/tensorflow/models.git
+    cd models/research
+    pip install .
+    ```
+
+    Alternatively, if you prefer not to install the package, add the research directory to your `PYTHONPATH` before running any script:
+
+    ```bash
+    export PYTHONPATH=$PYTHONPATH:/path/to/models/research
+    ```
+
+    Confirm the import works before continuing:
+
+    ```bash
+    python -c "from object_detection.utils import label_map_util; print('OK')"
     ```
   </Step>
-  <Step title="Run it">
-    Show the first thing a user does to see it working.
+
+  <Step title="Prepare Model Artifacts">
+    DetectorPlacas resolves all model paths relative to the working directory. Create the `inference_graph/` subdirectory inside your project root and place the exported model files there:
+
+    ```text
+    project-root/
+    ├── inference_graph/
+    │   ├── frozen_inference_graph.pb        ← required for inference
+    │   ├── model.ckpt.data-00000-of-00001
+    │   ├── model.ckpt.index
+    │   └── model.ckpt.meta
+    ├── labelmap.pbtxt                        ← required for inference
+    ├── Object_detection_image.py
+    ├── Object_detection_video.py
+    ├── Object_detection_webcam.py
+    └── interfaz.py
+    ```
+
+    Create `labelmap.pbtxt` in the project root with a single class entry:
+
+    ```text
+    item {
+      id: 1
+      name: 'license_plate'
+    }
+    ```
+
+    The scripts look for `inference_graph/frozen_inference_graph.pb` and `labelmap.pbtxt` using `os.getcwd()` as the base, so always run the scripts from the project root.
+  </Step>
+
+  <Step title="Run Detection">
+    Choose the detection mode that fits your input. All commands should be run from the project root.
+
+    **GUI — recommended for first-time use**
+
+    The Tkinter interface lets you select a mode with radio buttons (IMAGEN, VIDEO, CAMARA), optionally enter an image directory path, and click **PRUEBA** to launch the corresponding script:
 
     ```bash
-    your-cli start
+    python interfaz.py
     ```
+
+    **Image detection**
+
+    Scans the specified directory for `.jpg` files and runs inference on each one in sequence. Press any key to advance to the next image:
+
+    ```bash
+    python Object_detection_image.py --ruta=/path/to/images
+    ```
+
+    If `--ruta` is omitted, the script lists `.jpg` files in the current working directory:
+
+    ```bash
+    python Object_detection_image.py
+    ```
+
+    **Video detection**
+
+    Reads `prueba.mp4` from the working directory and processes it frame by frame. Press any key to advance through frames:
+
+    ```bash
+    python Object_detection_video.py
+    ```
+
+    **Webcam detection**
+
+    Opens camera index `0` at 1280×720 resolution and runs continuous inference. The feed stays live until you close the OpenCV window:
+
+    ```bash
+    python Object_detection_webcam.py
+    ```
+  </Step>
+
+  <Step title="Interpret Results">
+    When a license plate is detected above the mode's confidence threshold, DetectorPlacas draws a labelled bounding box directly on the frame using `vis_util.visualize_boxes_and_labels_on_image_array`. The box label shows the class name (`license_plate`) and the confidence score as a percentage.
+
+    **Confidence thresholds by mode:**
+    - Image: **0.65** — highest threshold, optimised for clean still frames
+    - Video: **0.55** — relaxed slightly to handle motion blur across frames
+    - Webcam: **0.50** — lowest threshold to catch plates under variable real-time lighting
+
+    **Controls:**
+    - **Any key** — advance to the next image (image mode) or the next frame (video mode)
+    - **Close the window** — exits webcam mode and triggers `cv2.destroyAllWindows()` and resource release
+
+    If no boxes appear, verify that `frozen_inference_graph.pb` is present in `inference_graph/`, that `labelmap.pbtxt` is in the project root, and that you are running the script from the correct working directory.
   </Step>
 </Steps>
 
 <Tip>
-  Give people a way to get help. This could be a link to a support page, a chat with a customer support agent, or a forum for your product.
-
-  Example: Need help? Reach out to us at [support@yourcompany.com](mailto:support@yourcompany.com).
+  Start with `python interfaz.py` on your first run. The GUI exposes all three modes from a single window and handles the `--ruta` flag for you, so you can explore DetectorPlacas without memorising command-line arguments.
 </Tip>
+
+<CardGroup cols={2}>
+  <Card title="Detection Modes" icon="camera" href="/guides/detection-modes">
+    Deep-dive into image, video, and webcam detection — covering confidence thresholds, directory scanning logic, frame-by-frame processing, and webcam resolution settings.
+  </Card>
+  <Card title="Script Reference" icon="file-code" href="/reference/scripts">
+    Full reference for every script: accepted flags, path resolution logic, tensor names, visualisation parameters, and the TF session lifecycle.
+  </Card>
+</CardGroup>

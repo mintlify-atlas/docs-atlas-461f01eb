@@ -1,0 +1,134 @@
+---
+title: "SSD MobileNet v1 Architecture and Inference"
+sidebarTitle: "Model Architecture"
+description: "How DetectorPlacas uses SSD MobileNet v1 for license plate detection: input shapes, tensor names, frozen graph loading, and TF session-based inference."
+---
+
+DetectorPlacas uses SSD (Single Shot MultiBox Detector) with MobileNet v1 as the feature extractor, implemented through TensorFlow 1.x's frozen graph inference API. Rather than running a two-stage detector like Faster R-CNN, SSD predicts bounding boxes and class scores for all anchor locations in a single forward pass — making it fast enough for real-time webcam use on modest hardware. This page covers the model's input and output shapes, the tensor names the scripts bind to, how the frozen graph is loaded into a TF session, and how inference results are visualized.
+
+## Model Overview
+
+| Property | Value |
+|----------|-------|
+| Architecture | SSD — Single Shot MultiBox Detector |
+| Feature extractor | MobileNet v1 (`depth_multiplier=1.0`, `min_depth=16`) |
+| Input resolution | 300 × 300 RGB (fixed shape resizer) |
+| Number of classes | `1` — license plate only |
+| Activation | `RELU_6` throughout all conv layers |
+| Batch normalization | Applied to every convolutional layer (decay=0.9997, ε=0.001) |
+| Anchor layers | 6 SSD feature map layers |
+| Anchor scale range | 0.2 – 0.95 of input size |
+| Anchor aspect ratios | 5 per location: `1.0, 2.0, 0.5, 3.0, 0.3333` |
+| Box predictor | Convolutional, `kernel_size=1`, no dropout at inference |
+| Score conversion | SIGMOID |
+| Post-processing | Non-Maximum Suppression, IoU threshold `0.6`, up to 100 detections |
+
+## Loading the Frozen Graph
+
+All three detection scripts use identical code to load the model from `frozen_inference_graph.pb`. The protobuf file is read from disk, parsed into a `GraphDef`, imported into a fresh `tf.Graph()`, and a `tf.Session()` is created bound to that graph.
+
+```python
+MODEL_NAME = 'inference_graph'
+CWD_PATH = os.getcwd()
+PATH_TO_CKPT = os.path.join(CWD_PATH, MODEL_NAME, 'frozen_inference_graph.pb')
+
+detection_graph = tf.Graph()
+with detection_graph.as_default():
+    od_graph_def = tf.GraphDef()
+    with tf.gfile.GFile(PATH_TO_CKPT, 'rb') as fid:
+        serialized_graph = fid.read()
+        od_graph_def.ParseFromString(serialized_graph)
+        tf.import_graph_def(od_graph_def, name='')
+
+    sess = tf.Session(graph=detection_graph)
+```
+
+The `name=''` argument to `tf.import_graph_def()` preserves the original tensor names (e.g., `image_tensor:0`) without adding a namespace prefix. The resulting `sess` object is kept open for the lifetime of the script and reused for every inference call.
+
+<Note>
+  This is TensorFlow 1.x session-based inference. TF 2.x removed both `tf.Session()` and `tf.GraphDef()`. If you need to migrate, the `saved_model/saved_model.pb` export bundled with the project can be loaded in TF 2.x using `tf.saved_model.load()`, which returns a callable with the same input/output semantics.
+</Note>
+
+## Input Preparation
+
+OpenCV loads images in BGR channel order by default. The model expects RGB input, so every script converts the color channel order before expanding the batch dimension.
+
+```python
+image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+image_expanded = np.expand_dims(image_rgb, axis=0)
+# Shape: [1, H, W, 3] — batch dimension required by the model
+```
+
+`np.expand_dims(..., axis=0)` inserts the batch dimension at position 0, turning a `[H, W, 3]` array into a `[1, H, W, 3]` array. The model's fixed-shape resizer handles the resize to 300 × 300 internally, so the input does not need to be pre-resized.
+
+## Inference Tensors
+
+<Accordion title="Tensor reference">
+  All five tensors are retrieved from the loaded graph by name immediately after the session is created. The same code appears in all three detection scripts.
+
+  ```python
+  image_tensor      = detection_graph.get_tensor_by_name('image_tensor:0')
+  detection_boxes   = detection_graph.get_tensor_by_name('detection_boxes:0')
+  detection_scores  = detection_graph.get_tensor_by_name('detection_scores:0')
+  detection_classes = detection_graph.get_tensor_by_name('detection_classes:0')
+  num_detections    = detection_graph.get_tensor_by_name('num_detections:0')
+  ```
+
+  | Tensor name | Direction | Shape | Notes |
+  |-------------|-----------|-------|-------|
+  | `image_tensor:0` | **Input** | `[batch, height, width, 3]` | RGB uint8 pixel values. The model internally resizes to 300 × 300. |
+  | `detection_boxes:0` | **Output** | `[batch, num_detections, 4]` | Normalized coordinates `[ymin, xmin, ymax, xmax]` in range `[0, 1]`. |
+  | `detection_scores:0` | **Output** | `[batch, num_detections]` | Confidence score per detection box, as a float in `[0, 1]`. |
+  | `detection_classes:0` | **Output** | `[batch, num_detections]` | Class index per detection. `1` = license plate. Cast to `int32` with `.astype(np.int32)`. |
+  | `num_detections:0` | **Output** | `[batch]` | Number of valid detections returned for each image in the batch. |
+</Accordion>
+
+## Running Inference
+
+The `sess.run()` call evaluates all four output tensors in a single forward pass, feeding the prepared image batch via `feed_dict`.
+
+```python
+(boxes, scores, classes, num) = sess.run(
+    [detection_boxes, detection_scores, detection_classes, num_detections],
+    feed_dict={image_tensor: image_expanded})
+```
+
+All four output arrays are returned simultaneously. Each has a leading batch dimension of size 1 (since `image_expanded` contains only one image), which must be removed before passing to the visualization utility.
+
+## Visualization
+
+After inference, `vis_util.visualize_boxes_and_labels_on_image_array()` draws bounding boxes, class labels, and confidence scores directly onto the original image array in place.
+
+```python
+vis_util.visualize_boxes_and_labels_on_image_array(
+    image,
+    np.squeeze(boxes),
+    np.squeeze(classes).astype(np.int32),
+    np.squeeze(scores),
+    category_index,
+    use_normalized_coordinates=True,
+    line_thickness=8,
+    min_score_thresh=0.65)  # 0.65 for image, 0.55 for video, 0.50 for webcam
+```
+
+| Argument | Meaning |
+|----------|---------|
+| `np.squeeze(boxes)` | Removes the batch dimension, yielding shape `[num_detections, 4]` |
+| `np.squeeze(classes).astype(np.int32)` | Removes the batch dimension and casts class indices to int32 for category lookup |
+| `np.squeeze(scores)` | Removes the batch dimension, yielding shape `[num_detections]` |
+| `use_normalized_coordinates=True` | Tells vis_util that box coordinates are in `[0, 1]` and should be scaled to pixel space by the function |
+| `line_thickness` | Border width in pixels for the drawn bounding boxes |
+| `min_score_thresh` | Detections with a confidence score below this threshold are not drawn. The threshold is deliberately loosest for webcam (`0.50`) to reduce misses in real-time use, and tightest for static images (`0.65`) where precision matters more. |
+
+## Model Artifacts
+
+The project directory contains the following model files. The primary inference artifact is the frozen protobuf graph; the checkpoint files are retained for fine-tuning or export.
+
+| File | Format | Purpose |
+|------|--------|---------|
+| `inference_graph/frozen_inference_graph.pb` | Frozen protobuf graph | Primary inference artifact — all weights are embedded; used by all three detection scripts |
+| `inference_graph/model.ckpt.data-*` | TF checkpoint data | Variable values for the trained model |
+| `inference_graph/model.ckpt.index` | TF checkpoint index | Maps variable names to their offsets in the data file |
+| `inference_graph/model.ckpt.meta` | TF checkpoint meta | Serialized `MetaGraphDef` — graph structure and saver information |
+| `saved_model/saved_model.pb` | SavedModel format | TF 2.x-compatible export; loadable via `tf.saved_model.load()` |
+| `checkpoint` | Plain text pointer | Contains `model_checkpoint_path: "model.ckpt"` and `all_model_checkpoint_paths: "model.ckpt"` — tells TF which checkpoint is current |

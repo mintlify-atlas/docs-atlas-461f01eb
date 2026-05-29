@@ -1,0 +1,61 @@
+{
+  "projectType": "ai-ml",
+  "projectName": "DetectorPlacas",
+  "projectDescription": "A computer vision project that uses TensorFlow and SSD MobileNet v1 to detect vehicle license plates in images, videos, and live webcam feeds.",
+  "theme": "luma",
+  "primaryColor": "#2563EB",
+  "lightColor": "#93C5FD",
+  "darkColor": "#1E3A8A",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/setup",
+              "guides/model-and-config",
+              "guides/detection-modes",
+              "guides/graphical-interface"
+            ]
+          },
+          {
+            "group": "Reference",
+            "pages": [
+              "reference/scripts",
+              "reference/pipeline-config",
+              "reference/model-architecture"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "License plate detection in static images using TensorFlow frozen inference graph",
+    "Real-time license plate detection on video files frame by frame",
+    "Live webcam feed detection at 1280×720 resolution",
+    "SSD MobileNet v1 feature extractor with 300×300 input resolution",
+    "Tkinter-based graphical interface for selecting detection mode and input path",
+    "Configurable confidence score thresholds per detection mode",
+    "Bounding box visualization with class labels and scores via TensorFlow Object Detection API"
+  ],
+  "publicApiSurface": [
+    "Object_detection_image.py --ruta=<path>",
+    "Object_detection_video.py",
+    "Object_detection_webcam.py",
+    "interfaz.py",
+    "pipeline.config",
+    "frozen_inference_graph.pb",
+    "model.ckpt",
+    "labelmap.pbtxt"
+  ]
+}

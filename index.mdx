@@ -1,20 +1,39 @@
 ---
-title: "Introduction"
-description: "Welcome to your project"
+title: "DetectorPlacas: License Plate Detection with TensorFlow"
+sidebarTitle: "Home"
+description: "DetectorPlacas uses a custom-trained SSD MobileNet v1 model to detect vehicle license plates in images, video files, and live webcam feeds using TensorFlow and OpenCV."
 ---
 
-Write a short description of your product here. What it does, who it's for, and what they can accomplish with it.
+DetectorPlacas is a computer vision project built with TensorFlow and OpenCV that automatically detects vehicle license plates in real time. It ships with a pre-trained frozen inference graph based on SSD MobileNet v1 and supports three detection modes — static images, video files, and live webcam streams — all accessible through a Tkinter graphical interface or directly from the command line.
 
-<Tip>
-  Ready to make this your own? Start by editing this page. Update your `docs.json` file to customize your site. Then fill out the [Quickstart](/quickstart) page.
-</Tip>
+<CardGroup cols={2}>
+  <Card title="Introduction" icon="book-open" href="/introduction">
+    Understand how DetectorPlacas works and explore the detection pipeline architecture.
+  </Card>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Install dependencies and run your first license plate detection in minutes.
+  </Card>
+  <Card title="Detection Modes" icon="camera" href="/guides/detection-modes">
+    Run detection on images, video files, or a live webcam feed with configurable thresholds.
+  </Card>
+  <Card title="Script Reference" icon="terminal" href="/reference/scripts">
+    Full reference for all Python scripts, flags, constants, and tensor names.
+  </Card>
+</CardGroup>
 
-<Card title="Quickstart" icon="rocket" href="/quickstart">
-  This card links to the quickstart page in your project.
-</Card>
-<Card title="Components" icon="puzzle-piece" href="https://mintlify.com/docs/components">
-  Add cards, callouts, steps, tabs, and more to design and structure your pages.
-</Card>
-<Card title="Settings" icon="gear" href="https://mintlify.com/docs/organize/settings">
-  Set your site name, branding, and navigation in the `docs.json` file.
-</Card>
+## How it works
+
+<Steps>
+  <Step title="Install dependencies">
+    Set up Python, TensorFlow 1.15, OpenCV, NumPy, and the TensorFlow Object Detection API.
+  </Step>
+  <Step title="Prepare model artifacts">
+    Place the frozen inference graph (`frozen_inference_graph.pb`) and `labelmap.pbtxt` in the expected directory layout.
+  </Step>
+  <Step title="Choose a detection mode">
+    Launch the Tkinter GUI (`interfaz.py`) or call an individual detection script directly from the terminal.
+  </Step>
+  <Step title="Visualize results">
+    Bounding boxes, confidence scores, and class labels are drawn on each frame using the TensorFlow Object Detection API visualization utilities.
+  </Step>
+</Steps>
