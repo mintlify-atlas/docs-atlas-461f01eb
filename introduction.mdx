@@ -1,22 +1,22 @@
 ---
-title: "DetectorPlacas: Real-Time License Plate Detection"
+title: "License Plate Detection with SSD MobileNet and TensorFlow"
 sidebarTitle: "Introduction"
-description: "DetectorPlacas is a TensorFlow computer vision project that detects vehicle license plates in images, video, and webcam feeds using SSD MobileNet v1."
+description: "A TensorFlow 1.x computer vision project that detects vehicle license plates across three modes: static images, pre-recorded video, and live webcam."
 ---
 
-DetectorPlacas is a Python computer vision project that uses TensorFlow and a frozen SSD MobileNet v1 inference graph to locate and highlight vehicle license plates in real time. Built on top of the TensorFlow Object Detection API and OpenCV, it supports three distinct detection modes — static images, pre-recorded video files, and live webcam feeds — making it practical for both batch analysis and real-time surveillance scenarios. The model was trained on a single-class dataset (license plates) and produces bounding boxes annotated with confidence scores on every frame it processes.
+DetectorPlacas is a Python computer vision project that uses TensorFlow 1.x and a frozen SSD MobileNet v1 inference graph to locate and highlight vehicle license plates. Built on top of the TensorFlow Object Detection API and OpenCV, it supports three distinct detection modes — static images, pre-recorded video files, and live webcam feeds — making it practical for both batch image analysis and continuous real-time surveillance. The model was trained on a single-class dataset (license plates) and produces bounding boxes annotated with confidence scores on every frame it processes.
 
 ## What DetectorPlacas Does
 
 DetectorPlacas exposes three detection modes, each implemented as a self-contained Python script and each tuned with its own minimum confidence threshold to balance precision against recall for that input type.
 
 | Mode | Script | Confidence Threshold | Window Title |
-|------|--------|---------------------|--------------|
+|------|--------|---------------------|--------------| 
 | Image | `Object_detection_image.py` | 0.65 | `Detector de Placas PRUEBA-IMAGEN` |
 | Video | `Object_detection_video.py` | 0.55 | `Detector de placas- PRUEBA VIDEO` |
 | Webcam | `Object_detection_webcam.py` | 0.50 | `Detector de placas PRUEBA-WEBCAM` |
 
-**Image mode** scans a directory for `.jpg` files and runs inference on each one sequentially, displaying results in an OpenCV window. The directory is set via the `--ruta` flag; if omitted, the current working directory is used.
+**Image mode** scans a directory for `.jpg` files using `os.listdir()` combined with `endswith('.jpg')`, and runs inference on each file sequentially, displaying results in an OpenCV window. The directory is set via the `--ruta` flag; if omitted, the current working directory is used.
 
 **Video mode** opens a file named `prueba.mp4` from the working directory and processes it frame by frame. A slightly lower threshold of 0.55 is used to account for motion blur and varying lighting across frames.
 
@@ -37,7 +37,7 @@ In all three modes, detections are visualised using `vis_util.visualize_boxes_an
     Three standalone Python scripts — `Object_detection_image.py`, `Object_detection_video.py`, and `Object_detection_webcam.py` — each loading the same frozen graph and label map but reading input from a different source and applying a mode-appropriate confidence threshold.
   </Card>
   <Card title="Graphical Interface" icon="display">
-    `interfaz.py` is a Tkinter GUI that presents radio buttons for IMAGEN, VIDEO, and CAMARA modes alongside a text field for the image directory path. Clicking **PRUEBA** dispatches the correct script via `os.system`, making it easy to switch modes without touching the command line.
+    `interfaz.py` is a Tkinter GUI with window title `"Proyecto"` that presents radio buttons for IMAGEN, VIDEO, and CAMARA modes alongside a text field for the image directory path. Clicking **PRUEBA** dispatches the correct script via `os.system`, making it easy to switch modes without touching the command line.
   </Card>
 </CardGroup>
 
@@ -45,7 +45,7 @@ In all three modes, detections are visualised using `vis_util.visualize_boxes_an
 
 Every detection script follows the same five-stage pipeline:
 
-1. **Load the label map** — `label_map_util.load_labelmap` reads `labelmap.pbtxt` and `label_map_util.create_category_index` builds the integer-to-name mapping used by the visualiser.
+1. **Load the label map** — `label_map_util.load_labelmap` reads `labelmap.pbtxt`, `label_map_util.convert_label_map_to_categories` converts it to a list of category dicts, and `label_map_util.create_category_index` builds the integer-to-name mapping used by the visualiser.
 2. **Deserialise the frozen graph** — A `tf.GraphDef()` object is populated by reading `frozen_inference_graph.pb` with `tf.gfile.GFile`, then imported into a dedicated `tf.Graph()` via `tf.import_graph_def`.
 3. **Open a TensorFlow session** — `tf.Session(graph=detection_graph)` creates the runtime context bound to the frozen graph.
 4. **Feed the image tensor** — Each frame is converted from BGR to RGB with OpenCV, expanded to a batch dimension of 1, and passed to the session via `feed_dict={image_tensor: frame_expanded}`.
@@ -62,7 +62,7 @@ Every detection script follows the same five-stage pipeline:
 <Info>
   DetectorPlacas depends on the following libraries. Ensure all are installed before running any detection script:
 
-  - **TensorFlow 1.x** — the scripts use `tf.app.flags`, `tf.Graph()`, `tf.Session()`, and `tf.GraphDef()`, which are TF 1.x APIs
+  - **TensorFlow 1.x** — the scripts use `tf.app.flags`, `tf.Graph()`, `tf.Session()`, and `tf.GraphDef()`, which are TF 1.x APIs removed or substantially changed in TF 2.x
   - **OpenCV (`cv2`)** — image and video I/O, colour-space conversion, and display
   - **NumPy** — tensor reshaping (`np.expand_dims`, `np.squeeze`)
   - **TensorFlow Object Detection API** — provides `label_map_util` and `visualization_utils` from the `tensorflow/models` research repository

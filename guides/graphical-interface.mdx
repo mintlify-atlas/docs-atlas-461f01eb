@@ -14,6 +14,10 @@ Run the following command from the project root:
 python interfaz.py
 ```
 
+<Note>
+When `interfaz.py` starts, it immediately executes `os.system('python ejemplo.py')` before the Tkinter window appears. This call runs unconditionally at module load time. If `ejemplo.py` is not present in the project root, the system call will silently fail and the GUI will continue to open normally.
+</Note>
+
 ## Window Layout
 
 The Tkinter window is titled **"Proyecto"** and contains four interactive elements arranged in a compact grid.

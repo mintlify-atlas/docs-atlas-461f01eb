@@ -1,7 +1,7 @@
 ---
-title: "Script Reference for DetectorPlacas"
+title: "DetectorPlacas Python Scripts: Flags, Constants, and Tensors"
 sidebarTitle: "Scripts"
-description: "Full reference for all four DetectorPlacas Python scripts: flags, constants, tensor names, confidence thresholds, and window titles for each detection mode."
+description: "Full reference for all four DetectorPlacas Python scripts: flags, constants, tensor names, confidence thresholds, and window titles per detection mode."
 ---
 
 DetectorPlacas ships four Python scripts: three detection scripts that each handle a different input source (static images, a video file, and a live webcam feed) and one Tkinter GUI launcher that wraps all three. This page documents every flag, constant, visualization setting, and behavioral detail drawn directly from the source code for each script.
@@ -17,6 +17,14 @@ DetectorPlacas ships four Python scripts: three detection scripts that each hand
     ```
 
     **Flag**
+
+    The flag is defined using `tf.app.flags`:
+
+    ```python
+    flags = tf.app.flags
+    flags.DEFINE_string('ruta', '', 'Path to the CSV input')
+    FLAGS = flags.FLAGS
+    ```
 
     <ParamField query="--ruta" type="string" default="">
       Path to the directory containing `.jpg` image files. When left empty the script falls back to `os.getcwd()`, so detection runs against the current working directory.
@@ -160,7 +168,7 @@ DetectorPlacas ships four Python scripts: three detection scripts that each hand
 
     **Window title:** `'Detector de placas PRUEBA-WEBCAM'`
 
-    **Behavior:** Runs in an infinite `while(True)` loop. Each iteration captures a frame, converts BGR→RGB, runs a `sess.run()` inference pass, annotates the frame, and calls `cv2.waitKeyEx()`. Press any key to step through frames manually. To stop the script, press Ctrl+C in the terminal or close the OpenCV window.
+    **Behavior:** Runs in an infinite `while(True)` loop with no break condition. Each iteration captures a frame, converts BGR→RGB, runs a `sess.run()` inference pass, annotates the frame, and calls `cv2.waitKeyEx()`. Cleanup lines (`video.release()` and `cv2.destroyAllWindows()`) are present in the source after the loop but are unreachable at runtime because the loop has no exit path. To stop the script, press Ctrl+C in the terminal.
   </Tab>
 
   <Tab title="interfaz.py">
@@ -174,16 +182,22 @@ DetectorPlacas ships four Python scripts: three detection scripts that each hand
 
     **Window title:** `"Proyecto"`
 
+    **Module-level side effect:** Before the GUI enters its event loop, the script executes `os.system('python ejemplo.py')` at module level. This call runs unconditionally whenever `interfaz.py` is imported or executed directly.
+
+    ```python
+    os.system('python ejemplo.py')
+    ```
+
     **UI elements**
 
     | Element | Details |
-    |---------|---------|
+    |---------|---------| 
     | Header label | Text: `"Detección de Placas"`, font=`courier`, bg=`azure` |
     | `selected` variable | `IntVar()` — holds the active radio selection |
     | Radio button — IMAGEN | `value=1` |
     | Radio button — VIDEO | `value=2` |
     | Radio button — CAMARA | `value=3` |
-    | RUTA entry | `Entry` widget; path supplied here is forwarded to `--ruta` in image mode |
+    | RUTA entry | `entry2` — `Entry` widget; path supplied here is forwarded to `--ruta` in image mode |
     | PRUEBA button | Calls `clicked()` on press |
 
     **`clicked()` dispatch function**
@@ -201,7 +215,7 @@ DetectorPlacas ships four Python scripts: three detection scripts that each hand
           os.system('python Object_detection_webcam.py')
     ```
 
-    When `selected == 1`, the value from the RUTA entry is interpolated into the `--ruta` flag and the image detection script is launched. Selections `2` and `3` invoke the video and webcam scripts respectively, ignoring the RUTA entry.
+    When `selected == 1`, the value from the RUTA entry (`entry2`) is interpolated into the `--ruta` flag and the image detection script is launched. Selections `2` and `3` invoke the video and webcam scripts respectively, ignoring the RUTA entry.
   </Tab>
 </Tabs>
 

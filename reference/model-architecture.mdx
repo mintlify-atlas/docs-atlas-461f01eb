@@ -1,7 +1,7 @@
 ---
-title: "SSD MobileNet v1 Architecture and Inference"
+title: "SSD MobileNet v1 Architecture for License Plate Detection"
 sidebarTitle: "Model Architecture"
-description: "How DetectorPlacas uses SSD MobileNet v1 for license plate detection: input shapes, tensor names, frozen graph loading, and TF session-based inference."
+description: "How DetectorPlacas uses SSD MobileNet v1 for license plate detection: input shapes, tensor names, frozen graph loading, and TF 1.x session-based inference."
 ---
 
 DetectorPlacas uses SSD (Single Shot MultiBox Detector) with MobileNet v1 as the feature extractor, implemented through TensorFlow 1.x's frozen graph inference API. Rather than running a two-stage detector like Faster R-CNN, SSD predicts bounding boxes and class scores for all anchor locations in a single forward pass — making it fast enough for real-time webcam use on modest hardware. This page covers the model's input and output shapes, the tensor names the scripts bind to, how the frozen graph is loaded into a TF session, and how inference results are visualized.
@@ -126,9 +126,9 @@ The project directory contains the following model files. The primary inference 
 
 | File | Format | Purpose |
 |------|--------|---------|
-| `inference_graph/frozen_inference_graph.pb` | Frozen protobuf graph | Primary inference artifact — all weights are embedded; used by all three detection scripts |
-| `inference_graph/model.ckpt.data-*` | TF checkpoint data | Variable values for the trained model |
-| `inference_graph/model.ckpt.index` | TF checkpoint index | Maps variable names to their offsets in the data file |
-| `inference_graph/model.ckpt.meta` | TF checkpoint meta | Serialized `MetaGraphDef` — graph structure and saver information |
+| `frozen_inference_graph.pb` | Frozen protobuf graph | Primary inference artifact — all weights are embedded; used by all three detection scripts |
+| `model.ckpt.data-00000-of-00001` | TF checkpoint data | Variable values for the trained model |
+| `model.ckpt.index` | TF checkpoint index | Maps variable names to their offsets in the data file |
+| `model.ckpt.meta` | TF checkpoint meta | Serialized `MetaGraphDef` — graph structure and saver information |
 | `saved_model/saved_model.pb` | SavedModel format | TF 2.x-compatible export; loadable via `tf.saved_model.load()` |
 | `checkpoint` | Plain text pointer | Contains `model_checkpoint_path: "model.ckpt"` and `all_model_checkpoint_paths: "model.ckpt"` — tells TF which checkpoint is current |

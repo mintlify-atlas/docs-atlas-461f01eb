@@ -12,12 +12,12 @@ DetectorPlacas provides three independent detection modes — static images, vid
 
 **Script:** `Object_detection_image.py`
 
-The image script accepts a `--ruta` flag pointing to a directory of `.jpg` files. When the flag is omitted or empty, the script falls back to the current working directory. It collects every file ending in `.jpg` using `os.listdir()`, then runs inference on each one in sequence. A new window opens for each image; press any key to advance to the next.
+The image script accepts a `--ruta` flag pointing to a directory of `.jpg` files. When the flag is omitted or empty, the script falls back to the current working directory. It collects every file ending in `.jpg` using `os.listdir()` combined with `endswith('.jpg')`, then runs inference on each one in sequence. A new window opens for each image; press any key to advance to the next.
 
 | Setting | Value |
 |---|---|
 | Flag | `--ruta` (path to image directory) |
-| File filter | `.endswith('.jpg')` |
+| File filter | `os.listdir()` + `.endswith('.jpg')` |
 | Confidence threshold | `min_score_thresh=0.65` |
 | Line thickness | 8 |
 | Window title | `'Detector de Placas PRUEBA-IMAGEN'` |
@@ -36,6 +36,10 @@ python Object_detection_image.py
 **Key detection code:**
 
 ```python
+image = cv2.imread(os.path.join(FLAGS.ruta, a))
+image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+image_expanded = np.expand_dims(image_rgb, axis=0)
+
 (boxes, scores, classes, num) = sess.run(
     [detection_boxes, detection_scores, detection_classes, num_detections],
     feed_dict={image_tensor: image_expanded})
@@ -114,7 +118,7 @@ cv2.destroyAllWindows()
 
 **Script:** `Object_detection_webcam.py`
 
-The webcam script opens camera index 0 — your system's default webcam — and sets the capture resolution to 1280×720. It runs in an infinite loop: each iteration reads a frame, converts it, runs inference, draws detections, and displays the result. Press any key to advance to the next frame.
+The webcam script opens camera index 0 — your system's default webcam — and sets the capture resolution to 1280×720. It runs in an infinite loop: each iteration reads a frame, converts it from BGR to RGB, runs inference, draws detections, and displays the result. Press any key to advance to the next frame.
 
 | Setting | Value |
 |---|---|
@@ -131,12 +135,34 @@ The webcam script opens camera index 0 — your system's default webcam — and 
 python Object_detection_webcam.py
 ```
 
-**Webcam initialization code:**
+**Webcam initialization and frame loop code:**
 
 ```python
 video = cv2.VideoCapture(0)
 ret = video.set(3, 1280)
 ret = video.set(4, 720)
+
+while(True):
+    ret, frame = video.read()
+    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    frame_expanded = np.expand_dims(frame_rgb, axis=0)
+
+    (boxes, scores, classes, num) = sess.run(
+        [detection_boxes, detection_scores, detection_classes, num_detections],
+        feed_dict={image_tensor: frame_expanded})
+
+    vis_util.visualize_boxes_and_labels_on_image_array(
+        frame,
+        np.squeeze(boxes),
+        np.squeeze(classes).astype(np.int32),
+        np.squeeze(scores),
+        category_index,
+        use_normalized_coordinates=True,
+        line_thickness=8,
+        min_score_thresh=0.50)
+
+    cv2.imshow('Detector de placas PRUEBA-WEBCAM', frame)
+    cv2.waitKeyEx()
 ```
 
 </Tab>

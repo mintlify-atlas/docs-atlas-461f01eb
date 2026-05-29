@@ -1,7 +1,7 @@
 ---
-title: "Get Started with DetectorPlacas in 5 Steps"
+title: "DetectorPlacas Quickstart: Install, Configure, and Run"
 sidebarTitle: "Quickstart"
-description: "Install TensorFlow, OpenCV, and the Object Detection API, then run license plate detection on images, video, or your webcam in minutes."
+description: "Install TensorFlow 1.x and the Object Detection API, place model artifacts in inference_graph/, then detect license plates in images, video, or webcam."
 ---
 
 By the end of this guide you will have a working DetectorPlacas environment and will have successfully run license plate detection on your first image — seeing bounding boxes and confidence scores drawn directly on the output. The setup takes about five minutes if you already have Python 3 installed.
@@ -86,7 +86,7 @@ By the end of this guide you will have a working DetectorPlacas environment and 
 
     **GUI — recommended for first-time use**
 
-    The Tkinter interface lets you select a mode with radio buttons (IMAGEN, VIDEO, CAMARA), optionally enter an image directory path, and click **PRUEBA** to launch the corresponding script:
+    The Tkinter interface (window title: `"Proyecto"`) lets you select a mode with radio buttons (IMAGEN, VIDEO, CAMARA), optionally enter an image directory path in the RUTA field, and click **PRUEBA** to launch the corresponding script:
 
     ```bash
     python interfaz.py
@@ -94,7 +94,7 @@ By the end of this guide you will have a working DetectorPlacas environment and 
 
     **Image detection**
 
-    Scans the specified directory for `.jpg` files and runs inference on each one in sequence. Press any key to advance to the next image:
+    Scans the specified directory for `.jpg` files using `os.listdir()` and runs inference on each one in sequence. Press any key to advance to the next image:
 
     ```bash
     python Object_detection_image.py --ruta=/path/to/images
@@ -108,7 +108,7 @@ By the end of this guide you will have a working DetectorPlacas environment and 
 
     **Video detection**
 
-    Reads `prueba.mp4` from the working directory and processes it frame by frame. Press any key to advance through frames:
+    Reads `prueba.mp4` from the working directory and processes it frame by frame. Press any key to step through each frame:
 
     ```bash
     python Object_detection_video.py
@@ -132,7 +132,7 @@ By the end of this guide you will have a working DetectorPlacas environment and 
     - Webcam: **0.50** — lowest threshold to catch plates under variable real-time lighting
 
     **Controls:**
-    - **Any key** — advance to the next image (image mode) or the next frame (video mode)
+    - **Any key** — advances past the current image (image mode) or the current frame (video mode); `cv2.waitKeyEx()` is called after every frame
     - **Close the window** — exits webcam mode and triggers `cv2.destroyAllWindows()` and resource release
 
     If no boxes appear, verify that `frozen_inference_graph.pb` is present in `inference_graph/`, that `labelmap.pbtxt` is in the project root, and that you are running the script from the correct working directory.

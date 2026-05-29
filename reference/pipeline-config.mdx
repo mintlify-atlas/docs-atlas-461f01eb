@@ -1,7 +1,7 @@
 ---
-title: "pipeline.config Reference for SSD MobileNet v1"
+title: "DetectorPlacas pipeline.config Reference: SSD MobileNet v1"
 sidebarTitle: "Pipeline Config"
-description: "Complete reference for all pipeline.config sections used to train DetectorPlacas: model, anchors, loss, optimizer schedule, and evaluation settings."
+description: "Complete reference for the DetectorPlacas pipeline.config: model architecture, anchor generator, loss functions, optimizer schedule, and evaluation setup."
 ---
 
 `pipeline.config` is the TensorFlow Object Detection API training configuration file used to train the DetectorPlacas model. It controls every aspect of training — from the model architecture and anchor generation strategy to the optimizer schedule, data augmentation, and evaluation protocol. All values documented here are extracted directly from the project's `pipeline.config` file.
@@ -104,6 +104,35 @@ description: "Complete reference for all pipeline.config sections used to train 
   | x-center | `10.0` |
   | height (log) | `5.0` |
   | width (log) | `5.0` |
+</Accordion>
+
+<Accordion title="Box Predictor">
+  The convolutional box predictor is applied on top of each SSD feature map layer to produce raw box offsets and class scores.
+
+  ```text
+      box_predictor {
+        convolutional_box_predictor {
+          min_depth: 0
+          max_depth: 0
+          num_layers_before_predictor: 0
+          use_dropout: false
+          dropout_keep_probability: 0.8
+          kernel_size: 1
+          box_code_size: 4
+          apply_sigmoid_to_scores: false
+        }
+      }
+  ```
+
+  | Field | Value | Meaning |
+  |-------|-------|---------|
+  | `min_depth` | `0` | No minimum filter depth enforced on predictor layers |
+  | `max_depth` | `0` | No maximum filter depth limit — uses the feature map depth directly |
+  | `num_layers_before_predictor` | `0` | No extra conv layers inserted before the predictor head |
+  | `use_dropout` | `false` | Dropout is disabled; `dropout_keep_probability: 0.8` is defined but not applied |
+  | `kernel_size` | `1` | 1×1 convolution for the predictor head |
+  | `box_code_size` | `4` | Four values per box: `[y_offset, x_offset, height_log, width_log]` |
+  | `apply_sigmoid_to_scores` | `false` | Raw logits are returned; sigmoid is applied in the post-processing step instead |
 </Accordion>
 
 <Accordion title="Anchor Generator">
@@ -264,8 +293,8 @@ description: "Complete reference for all pipeline.config sections used to train 
   |------------|---------------|
   | 0 → 4499 | `0.0002` (initial) |
   | 4500 → 6999 | `0.0001` |
-  | 7000 → 9999 | `0.00008` |
-  | 10000 → 200000 | `0.00004` |
+  | 7000 → 9999 | `8e-05` |
+  | 10000 → 200000 | `4e-05` |
 
   **Checkpoint and fine-tuning**
 
